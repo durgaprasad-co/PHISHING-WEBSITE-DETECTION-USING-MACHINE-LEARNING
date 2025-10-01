@@ -1,25 +1,19 @@
 {
-"version": 2,
-"builds": [
-{
-"src": "api/index.py",
-"use": "@vercel/python",
-"config": {
-"maxLambdaSize": "15mb",
-"runtime": "python3.11"
-}
-}
-],
-"routes": [
-{
-"src": "/(.*)",
-"dest": "api/index.py"
-}
-],
-"env": {
-"SECRET_KEY": "1234567890abcdefghijklmnopqrstuvwx",
-"DATABASE_URL": "postgres://",
-"ADMIN_EMAIL": "Adp9550@gmail.com",
-"ADMIN_PASSWORD": "ADpSs5220"
-}
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb",
+        "runtime": "python3.11"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.py"
+    }
+  ]
 }

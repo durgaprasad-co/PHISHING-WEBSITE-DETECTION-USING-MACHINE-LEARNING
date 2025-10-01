@@ -4,9 +4,18 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import joblib
-import re
+import re # 're' is a built-in module, which is why it must be excluded from requirements.txt
 from datetime import datetime
 from sqlalchemy import func
+import pathlib 
+from typing import Optional
+
+# Attempt to import psycopg2 to ensure the necessary driver is available in the environment
+try:
+    import psycopg2 
+except ImportError:
+    # This is fine; Vercel will install it from requirements.txt, but locally it might be missing
+    pass
 
 # --- Initialize Flask App and Configuration ---
 
@@ -14,14 +23,12 @@ app = Flask(__name__)
 
 # Load configuration from environment variables (crucial for deployment)
 # SECRET_KEY must be a long, random, and unique string.
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '1234567890abcdefghijklmnopqrstuvwx')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'vcghvuegfjhvgfbvahgfbfhgrfgbgunh')
 
 # Database configuration: prefers a production database URI (e.g., PostgreSQL) 
-# from environment variables, falls back to local SQLite for development only.
-database_url = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
+database_url = os.environ.get('DATABASE_URL', 'sqlite:///site.db') # Fallback for local testing only
 
-# IMPORTANT: Heroku/some providers use 'postgres://', but SQLAlchemy/psycopg2 
-# prefer 'postgresql://'. We fix this for production compatibility.
+# CRITICAL FIX: Change 'postgres://' to 'postgresql://' for SQLAlchemy/psycopg2 compatibility.
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
@@ -34,6 +41,8 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+login_manager.login_message_category = 'info'
+login_manager.login_message = 'Please log in to access this page.'
 
 # --- Database Models ---
 
@@ -45,7 +54,7 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(200), nullable=False) 
     is_admin = db.Column(db.Boolean, default=False)
 
-    history = db.relationship('URLHistory', backref='owner', lazy=True)
+    history = db.relationship('URLHistory', backref='owner', lazy=True, cascade='all, delete-orphan')
 
 class URLHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -57,30 +66,41 @@ class URLHistory(db.Model):
 # --- Login Manager Callbacks ---
 
 @login_manager.user_loader
-def load_user(user_id):
+def load_user(user_id: str) -> Optional[User]:
     """Callback to reload the user object from the user ID stored in the session."""
     return db.session.get(User, int(user_id))
 
 # --- ML Model Loading ---
 
+# Resolve the path relative to the current file location (required for Vercel deployment)
+base_dir = pathlib.Path(__file__).parent
+model_path = base_dir / 'url_model.joblib'
+vectorizer_path = base_dir / 'url_vectorizer.joblib'
+
+url_model = None
+url_vectorizer = None
+
 try:
     # Attempt to load the pre-trained model and vectorizer
-    url_model = joblib.load('url_model.joblib')
-    url_vectorizer = joblib.load('url_vectorizer.joblib')
+    url_model = joblib.load(model_path)
+    url_vectorizer = joblib.load(vectorizer_path)
     print("ML Model and Vectorizer loaded successfully.")
 except FileNotFoundError:
-    print("CRITICAL ERROR: ML model files (url_model.joblib and url_vectorizer.joblib) not found.")
-    sys.exit(1) # Exit immediately if models are missing
+    print("CRITICAL ERROR: ML model files (url_model.joblib or url_vectorizer.joblib) not found.")
+    # Exit gracefully if deployed, but allow the app to run for local dev if necessary
+    if os.environ.get('VERCEL'):
+        sys.exit(1)
 except Exception as e:
     print(f"CRITICAL ERROR loading ML files: {e}")
-    sys.exit(1)
+    if os.environ.get('VERCEL'):
+        sys.exit(1)
 
-# --- Feature Extraction Function (MUST match ML training) ---
+# --- Feature Extraction Function ---
 
-def extract_features(url):
+def extract_features(url: str) -> str:
     """
-    Extracts features from the URL (as used during model training).
     Returns the raw URL string for the loaded vectorizer to process.
+    The actual feature extraction is handled by the pre-trained vectorizer.
     """
     return url
 
@@ -95,20 +115,30 @@ def index():
 @login_required
 def predict():
     """Handles URL submission, prediction, and history logging."""
-    if request.method == 'POST':
-        raw_url = request.form['url_input']
-        
-        if not raw_url:
-            flash("Please enter a URL to analyze.", "warning")
-            return redirect(url_for('index'))
-        
-        # Prepare and predict
-        url_to_predict = extract_features(raw_url)
+    if url_model is None or url_vectorizer is None:
+        flash("Model not loaded. Cannot perform prediction.", "danger")
+        return redirect(url_for('index'))
+
+    raw_url = request.form.get('url_input', '').strip()
+    
+    if not raw_url:
+        flash("Please enter a URL to analyze.", "warning")
+        return redirect(url_for('index'))
+    
+    # Prepare and predict
+    url_to_predict = extract_features(raw_url)
+    try:
         url_vectorized = url_vectorizer.transform([url_to_predict])
+        # Prediction result: 0 for Legitimate, 1 for Phishing
         prediction = url_model.predict(url_vectorized)[0]
         result = 'Legitimate' if prediction == 0 else 'Phishing'
-        
-        # Save to history
+    except Exception as e:
+        print(f"Prediction failed: {e}")
+        flash("Prediction service temporarily unavailable.", "danger")
+        result = 'Unknown'
+
+    # Save to history if a valid user is logged in
+    if current_user.is_authenticated:
         try:
             new_entry = URLHistory(
                 user_id=current_user.id, 
@@ -122,7 +152,7 @@ def predict():
             print(f"Error saving history: {e}")
             flash("Could not save prediction history to the database.", "warning")
 
-        return render_template('result.html', url=raw_url, result=result)
+    return render_template('result.html', url=raw_url, result=result)
 
 @app.route('/dashboard')
 @login_required
@@ -133,6 +163,7 @@ def dashboard():
     user_history = URLHistory.query.filter_by(user_id=current_user.id).order_by(URLHistory.timestamp.desc()).all()
     
     # 2. Calculate statistics for chart
+    # Use SQLAlchemy's func.count for aggregation
     stats = db.session.query(
         URLHistory.result, 
         func.count(URLHistory.result)
@@ -142,6 +173,7 @@ def dashboard():
     for result, count in stats:
         data[result] = count
 
+    # Format data for Chart.js in the template
     chart_data = [data['Phishing'], data['Legitimate']]
     
     return render_template('dashboard.html', history=user_history, chart_data=chart_data)
@@ -220,13 +252,12 @@ def admin():
     return render_template('admin.html', users=users, history=history)
 
 # --- Flask Command Line Interface (CLI) Setup ---
-# Use 'flask init-db-admin' command to create the DB and the initial admin user.
 
 @app.cli.command("init-db-admin")
 def initialize_database_and_admin():
     """
     Initializes the database structure and creates the default admin user.
-    Run this manually after deployment: 'flask init-db-admin'
+    Run this manually after deployment using 'flask init-db-admin'.
     """
     with app.app_context():
         try:
@@ -235,7 +266,7 @@ def initialize_database_and_admin():
 
             # Load admin credentials from environment variables
             admin_email = os.environ.get('ADMIN_EMAIL', 'Adp9550@gmail.com')
-            admin_password = os.environ.get('ADMIN_PASSWORD', 'ADp@5220')
+            admin_password = os.environ.get('ADMIN_PASSWORD', 'ADp95220')
             
             if not User.query.filter_by(email=admin_email).first():
                 # In production, the password MUST be hashed before storage.
@@ -243,7 +274,7 @@ def initialize_database_and_admin():
                 db.session.add(admin_user)
                 db.session.commit()
                 print(f"Default admin user '{admin_email}' created (Password: '{admin_password}').")
-                print("!!! WARNING: If using the default credentials, CHANGE ADMIN_EMAIL AND ADMIN_PASSWORD ENVIRONMENT VARIABLES IN PRODUCTION !!!")
+                print("!!! WARNING: Ensure ADMIN_EMAIL and ADMIN_PASSWORD environment variables are set securely in production !!!")
             else:
                 print(f"Admin user '{admin_email}' already exists. Skipping creation.")
                 
@@ -251,6 +282,9 @@ def initialize_database_and_admin():
             print(f"ERROR: Database initialization failed. Ensure your database is accessible. Details: {e}", file=sys.stderr)
             sys.exit(1)
 
-# --- Production Entry Point ---
-# The application is now ready to be run by a WSGI server (like Gunicorn) 
-# which will import the 'app' object.
+# --- Local Development Entry Point (Vercel ignores this) ---
+if __name__ == '__main__':
+    # This block is for local development only. Vercel uses the 'app' object directly.
+    print("Running Flask app in local development mode.")
+    # The application is now ready to be run by a WSGI server (like Gunicorn) or locally via 'flask run'.
+    app.run(debug=True)

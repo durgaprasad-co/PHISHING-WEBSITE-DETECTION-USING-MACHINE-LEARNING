@@ -5,4 +5,3 @@ from app import app
 
 # Vercel's Python builder automatically handles the 'app' object
 # as the serverless function entry point.
-# We do NOT need to import or use 'vercel_app' or 'handler'.
