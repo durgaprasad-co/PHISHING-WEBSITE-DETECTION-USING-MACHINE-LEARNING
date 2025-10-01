@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 # Load configuration from environment variables (crucial for deployment)
 # SECRET_KEY must be a long, random, and unique string.
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ADurG@PR@$@D9550e1t2vg62rg93d7th')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '1234567890abcdefghijklmnopqrstuvwx')
 
 # Database configuration: prefers a production database URI (e.g., PostgreSQL) 
 # from environment variables, falls back to local SQLite for development only.
@@ -235,7 +235,7 @@ def initialize_database_and_admin():
 
             # Load admin credentials from environment variables
             admin_email = os.environ.get('ADMIN_EMAIL', 'Adp9550@gmail.com')
-            admin_password = os.environ.get('ADMIN_PASSWORD', '@$ADp5220')
+            admin_password = os.environ.get('ADMIN_PASSWORD', 'ADp@5220')
             
             if not User.query.filter_by(email=admin_email).first():
                 # In production, the password MUST be hashed before storage.

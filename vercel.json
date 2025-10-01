@@ -17,9 +17,9 @@
 }
 ],
 "env": {
-"SECRET_KEY": "ADurG@PR@$@D9550e1t2vg62rg93d7th",
+"SECRET_KEY": "1234567890abcdefghijklmnopqrstuvwx",
 "DATABASE_URL": "postgres://",
 "ADMIN_EMAIL": "Adp9550@gmail.com",
-"ADMIN_PASSWORD": "@$ADp5220"
+"ADMIN_PASSWORD": "ADpSs5220"
 }
 }
