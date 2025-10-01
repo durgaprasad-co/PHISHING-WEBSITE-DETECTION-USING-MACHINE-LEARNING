@@ -1,0 +1,8 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+joblib
+scikit-learn  # Assuming joblib models are from scikit-learn
+re
+gunicorn      # Highly recommended for production web servers
+psycopg2-binary

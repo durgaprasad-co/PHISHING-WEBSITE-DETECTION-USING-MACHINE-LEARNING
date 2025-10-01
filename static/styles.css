@@ -1,0 +1,323 @@
+/* Import professional fonts from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;600;700;800&display=swap');
+
+:root {
+    /* FYNSEC-inspired Light Mode Variables */
+    --primary-blue: #007bff; /* Base primary blue */
+    --dark-blue: #0056b3; /* Darker blue for hover/accents */
+    --light-blue: #e0f2ff; /* Very light blue for subtle backgrounds */
+    --text-color-dark: #343a40; /* Darker text for readability */
+    --text-color-light: #6c757d; /* Lighter text for secondary info */
+    --background-light: #f8f9fa; /* General light background */
+    --card-background-light: #ffffff; /* White card background */
+    --border-light: rgba(0, 0, 0, 0.1); /* Light border */
+    --shadow-light: rgba(0, 0, 0, 0.1); /* Light shadow */
+    --gradient-start: #007bff; /* Start of primary button/hero gradient */
+    --gradient-end: #0056b3; /* End of primary button/hero gradient */
+
+    /* Status Colors */
+    --color-danger: #dc3545;
+    --color-success: #28a745;
+    --color-info: #17a2b8;
+    --color-warning: #ffc107;
+}
+
+/* Base Body Styles */
+body {
+    font-family: 'Poppins', sans-serif; /* Modern, clean body font */
+    background-color: var(--background-light);
+    color: var(--text-color-dark);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    transition: background-color 0.4s ease, color 0.4s ease; /* Smooth theme transition */
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif; /* Stronger, more impactful heading font */
+    font-weight: 700;
+    color: var(--text-color-dark);
+    transition: color 0.4s ease;
+}
+
+.display-4 {
+    font-weight: 800; /* Extra bold for main titles */
+    color: var(--primary-blue);
+}
+
+/* Navbar Styling */
+.navbar {
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end)) !important; /* Blue gradient for navbar */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); /* More prominent shadow */
+    padding: 1rem 0; /* More vertical padding */
+}
+
+.navbar-brand {
+    font-size: 1.8rem; /* Larger, bolder brand */
+    font-weight: 700;
+    color: white !important;
+    letter-spacing: -0.5px;
+}
+
+.navbar .btn-light {
+    background-color: rgba(255, 255, 255, 0.2); /* Transparent white button */
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 50px; /* Pill shape */
+    transition: all 0.3s ease;
+}
+
+.navbar .btn-light:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
+}
+
+/* Hero Section (for index.html) */
+.hero-section {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+    color: white;
+    padding: 80px 0;
+    border-radius: 15px;
+    margin-bottom: 3rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.hero-section h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    color: white; /* Ensure heading is white on dark background */
+}
+
+.hero-section p.lead {
+    font-size: 1.25rem;
+    opacity: 0.9;
+    max-width: 800px;
+    margin: 0 auto 2.5rem auto;
+}
+
+/* Buttons */
+.btn-primary {
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+    border: none;
+    border-radius: 50px; /* Pill shape */
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 123, 255, 0.4);
+    background: linear-gradient(to right, var(--dark-blue), var(--gradient-start)); /* Slight shift on hover */
+}
+
+.btn-secondary {
+    background-color: var(--text-color-light);
+    border: none;
+    border-radius: 50px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(108, 117, 125, 0.2);
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    background-color: #5a6268;
+    box-shadow: 0 6px 15px rgba(108, 117, 125, 0.3);
+}
+
+/* Card Styling */
+.card {
+    border: none; /* Remove default border */
+    border-radius: 15px; /* Larger, softer corners */
+    box-shadow: 0 10px 30px var(--shadow-light); /* More pronounced, softer shadow */
+    background-color: var(--card-background-light);
+    transition: all 0.4s ease; /* Smooth transition for theme and hover */
+    overflow: hidden; /* Ensures border-radius applies correctly */
+}
+
+.card-header {
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end)) !important; /* Gradient header */
+    color: white !important;
+    font-weight: 600;
+    padding: 1.5rem 1.25rem; /* More padding */
+    border-bottom: none !important;
+    font-size: 1.3rem;
+}
+
+/* Form Control Styling */
+.form-control {
+    border-radius: 10px; /* Rounded inputs */
+    padding: 0.85rem 1.25rem; /* More comfortable padding */
+    border: 1px solid var(--border-light);
+    background-color: var(--card-background-light);
+    color: var(--text-color-dark);
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25); /* Primary color focus glow */
+    background-color: var(--card-background-light); /* Keep background consistent */
+    color: var(--text-color-dark);
+}
+
+/* Input Group for URL Check */
+.input-group-lg > .form-control, .input-group-lg > .btn {
+    padding: 0.85rem 1.5rem;
+    font-size: 1.15rem;
+    border-radius: 10px;
+}
+.input-group-lg > .form-control {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+.input-group-lg > .btn {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+
+/* Footer Styling */
+footer {
+    background-color: var(--dark-blue); /* Dark blue footer */
+    color: white;
+    text-align: center;
+    padding: 30px 0;
+    margin-top: 5rem; /* More space above footer */
+    font-size: 0.9rem;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+footer a {
+    color: var(--light-blue);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+footer a:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+/* Table Styling (for admin/dashboard) */
+.table {
+    border-radius: 10px;
+    overflow: hidden; /* Ensures rounded corners */
+    margin-top: 1.5rem;
+}
+
+.table thead {
+    background-color: var(--primary-blue);
+    color: white;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: var(--light-blue); /* Lighter stripe */
+}
+
+.table-hover > tbody > tr:hover > * {
+    background-color: rgba(0, 123, 255, 0.1); /* Subtle hover effect */
+    color: var(--text-color-dark);
+}
+
+.table th, .table td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-top: 1px solid var(--border-light);
+    color: var(--text-color-dark);
+}
+.table-responsive {
+    border-radius: 10px;
+    overflow-x: auto; /* For small screens */
+    border: 1px solid var(--border-light); /* Enclose table with a border */
+}
+
+/* Badges for status (Admin, Phishing, Legitimate) */
+.badge {
+    padding: 0.6em 1em;
+    border-radius: 50px; /* Pill shape for badges */
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+.badge.bg-danger { background-color: var(--color-danger) !important; }
+.badge.bg-success { background-color: var(--color-success) !important; }
+
+/* Custom utility for URL display */
+.url-display {
+    word-break: break-all;
+    font-size: 1.1rem;
+    font-weight: 500;
+    padding: 10px 15px;
+    background-color: var(--light-blue);
+    border-radius: 8px;
+    display: inline-block; /* To contain background */
+    max-width: 100%;
+}
+
+
+/* Dark Mode Styling */
+body.dark-mode {
+    --background-light: #1a1a2e; /* Deep dark background */
+    --text-color-dark: #e0e0e0; /* Light grey text */
+    --text-color-light: #b0b0b0; /* Lighter grey for secondary text */
+    --card-background-light: #2c2c4a; /* Darker card background */
+    --border-light: rgba(255, 255, 255, 0.1); /* Lighter border in dark mode */
+    --shadow-light: rgba(0, 0, 0, 0.4); /* More pronounced dark shadow */
+    --primary-blue: #6a9bd8; /* Lighter primary blue for contrast */
+    --dark-blue: #4a7bb3; /* Adjust darker blue for dark mode */
+    --light-blue: #3d4d73; /* Darker light blue for backgrounds */
+    --gradient-start: #4a7bb3; /* Dark mode gradient start */
+    --gradient-end: #6a9bd8; /* Dark mode gradient end */
+}
+
+.dark-mode .navbar {
+    background: linear-gradient(to right, #1f1f2f, #2c2c4a) !important; /* Darker navbar gradient */
+}
+.dark-mode footer {
+    background-color: #1f1f2f; /* Darker footer */
+}
+
+.dark-mode .table thead {
+    background-color: var(--primary-blue); /* Keep primary blue for table headers */
+    color: white;
+}
+.dark-mode .table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: #26263b; /* Darker stripe */
+}
+.dark-mode .table-hover > tbody > tr:hover > * {
+    background-color: #38385a; /* Darker hover */
+}
+.dark-mode .form-control {
+    background-color: #26263b;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+.dark-mode .form-control:focus {
+    box-shadow: 0 0 0 0.25rem rgba(106, 155, 216, 0.3);
+}
+
+.dark-mode .hero-section {
+    background: linear-gradient(135deg, #1f1f2f 0%, #2c2c4a 100%);
+}
+.dark-mode .display-4 {
+    color: var(--primary-blue); /* Keep blue emphasis */
+}
+
+.dark-mode a {
+    color: var(--primary-blue);
+}
+.dark-mode a:hover {
+    color: var(--light-blue);
+}
+
+/* Ensure text on colored badges is readable in dark mode */
+.dark-mode .badge.bg-danger { color: white !important; }
+.dark-mode .badge.bg-success { color: white !important; }
