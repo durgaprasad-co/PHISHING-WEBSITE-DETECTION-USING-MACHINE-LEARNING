@@ -1,8 +1,8 @@
 # This file is the entry point Vercel uses to run your application.
-# It imports the main Flask app object from the parent directory.
+# It MUST expose the Flask application instance directly.
 
 from app import app
-from vercel_app import handler
 
-# The 'handler' function is what Vercel executes.
-# It wraps the Flask app instance for the serverless environment.
+# Vercel's Python builder automatically handles the 'app' object
+# as the serverless function entry point.
+# We do NOT need to import or use 'vercel_app' or 'handler'.
