@@ -234,8 +234,8 @@ def initialize_database_and_admin():
             print("Database structure created successfully.")
 
             # Load admin credentials from environment variables
-            admin_email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
-            admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
+            admin_email = os.environ.get('ADMIN_EMAIL', 'Adp9550@gmail.com')
+            admin_password = os.environ.get('ADMIN_PASSWORD', '@$ADp5220')
             
             if not User.query.filter_by(email=admin_email).first():
                 # In production, the password MUST be hashed before storage.
