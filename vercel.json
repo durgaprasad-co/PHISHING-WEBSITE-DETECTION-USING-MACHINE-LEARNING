@@ -1,0 +1,25 @@
+{
+"version": 2,
+"builds": [
+{
+"src": "api/index.py",
+"use": "@vercel/python",
+"config": {
+"maxLambdaSize": "15mb",
+"runtime": "python3.11"
+}
+}
+],
+"routes": [
+{
+"src": "/(.*)",
+"dest": "api/index.py"
+}
+],
+"env": {
+"SECRET_KEY": "@ADurG@PR@$@D9550",
+"DATABASE_URL": "postgres://",
+"ADMIN_EMAIL": "Admin@$@ADP@email.com",
+"ADMIN_PASSWORD": "@ADP$520"
+}
+}
