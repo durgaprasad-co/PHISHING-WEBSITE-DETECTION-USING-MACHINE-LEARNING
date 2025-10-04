@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  # This is the service name, which replaces the --name flag
+  phish-detector-app:
+    # Tells Defang to build the Docker image using the Dockerfile in the current directory
+    build: .
+    # The application runs on port 8080, as defined in your Dockerfile
+    ports:
+      - "8080"
+    # All required environment variables are defined here
+    environment:
+      - SECRET_KEY=913817ea60927379d177d4e6c21879c50eae5c2bee04810dbd16f17664d7d2e5
+      - DATABASE_URL=postgresql://neondb_owner:npg_u7iJmIGEaw2Z@ep-rough-poetry-ade9k5j8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - ADMIN_EMAIL=Adp9550@gmail.com
+      - ADMIN_PASSWORD=ADp95220
