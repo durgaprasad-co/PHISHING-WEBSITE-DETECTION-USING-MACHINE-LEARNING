@@ -32,9 +32,9 @@
                 <p class="lead animate__animated animate__fadeInUp animate__delay-1s">
                     Detect and classify URLs as legitimate or phishing to enhance online security.
                 </p>
-                <form action="/predict" method="POST" class="mb-4 animate__animated animate__fadeInUp animate__delay-2s">
+                <form action="/analyze" method="POST" class="mb-4 animate__animated animate__fadeInUp animate__delay-2s">
                     <div class="input-group input-group-lg mx-auto" style="max-width: 700px;">
-                        <input type="text" name="url" class="form-control shadow-sm" placeholder="Enter URL here, e.g., https://safe.com or https://phishing.link" required>
+                        <input type="text" name="url_input" class="form-control shadow-sm" placeholder="Enter URL here, e.g., https://safe.com or https://phishing.link" required>
                         <button type="submit" class="btn btn-primary shadow">
                             <i class="fas fa-arrow-alt-circle-right me-2"></i>Analyze URL
                         </button>
