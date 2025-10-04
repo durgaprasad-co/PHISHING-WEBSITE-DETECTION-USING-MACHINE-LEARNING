@@ -1,33 +1,54 @@
-# Use a slim Python base image
-FROM python:3.10-slim
+# --- Stage 1: Builder ---
+# This stage installs dependencies and builds a virtual environment.
+FROM python:3.10 as builder
 
-# Install system dependencies required for packages like psycopg2 and scipy
-# Using --no-install-recommends keeps the image size down
+# Set environment variables for a clean build
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Install system dependencies required for building Python packages like psycopg2 and scipy
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
-WORKDIR /app
+# Create a virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Install dependencies
+# Copy only the requirements file to leverage Docker cache
+WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# --- Stage 2: Final Image ---
+# This stage creates the final, lightweight, and secure image.
+FROM python:3.10-slim
+
+# Create a non-root user and group for security
+RUN addgroup --system app && adduser --system --group app
+
+WORKDIR /app
+
+# Copy the virtual environment from the builder stage
+COPY --from=builder /opt/venv /opt/venv
 
 # Create model directory
 RUN mkdir -p /app/model
 
-# Copy model files first (if they exist)
-COPY model/*.joblib /app/model/
-
-# Copy all other project files
+# Copy the application source code and model files
 COPY . /app/
+
+# Ensure the app user owns all files
+RUN chown -R app:app /app
 
 # Define the port the container will listen on
 ENV PORT 8080
 
+# Switch to the non-root user
+USER app
+
 # Command to run the application using Gunicorn
-# app:app refers to the 'app' object inside the 'app.py' file
-CMD exec gunicorn --bind :$PORT --workers 2 --threads 4 app:app
+# Use the Python from the virtual environment to run Gunicorn
+CMD ["/opt/venv/bin/gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "4", "app:app"]
