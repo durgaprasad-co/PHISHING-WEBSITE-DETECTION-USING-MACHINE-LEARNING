@@ -4,4 +4,5 @@ Flask-Login
 joblib
 psycopg2-binary
 gunicorn
-Flask-Bcrypt  
+Flask-Bcrypt
+scipy
