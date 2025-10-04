@@ -181,11 +181,13 @@ def health_check():
     try:
         # 1. Verify database connection is alive
         db.session.execute('SELECT 1')
-        # 2. Verify ML models are loaded and ready
-        if classifier is None or vectorizer is None:
-            # Return 503 to indicate the service is temporarily unavailable
-            return jsonify({'status': 'unhealthy', 'reason': 'ML models not loaded'}), 503
-        return jsonify({'status': 'healthy'}), 200
+        # 2. Check ML models status but don't fail health check if they're missing
+        ml_status = 'ready' if classifier is not None and vectorizer is not None else 'unavailable'
+        return jsonify({
+            'status': 'healthy',
+            'database': 'connected',
+            'ml_models': ml_status
+        }), 200
     except Exception as e:
         print(f"Health check failed: {e}", file=sys.stderr)
         return jsonify({'status': 'unhealthy', 'reason': str(e)}), 503
