@@ -196,11 +196,15 @@ def get_prediction_from_url(url: str) -> Optional[str]:
 def health_check():
     """Health check endpoint for the load balancer."""
     try:
-        # Verify database connection
+        # Simple database connection test
         db.session.execute('SELECT 1')
+        db.session.commit()  # Ensure transaction is closed
+
         # Verify ML models are loaded (and thus feature count is likely patched correctly)
         if classifier is None or vectorizer is None:
             return jsonify({"status": "error", "message": "ML models not loaded"}), 500
+
+        # All checks passed
         return jsonify({"status": "healthy"}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
