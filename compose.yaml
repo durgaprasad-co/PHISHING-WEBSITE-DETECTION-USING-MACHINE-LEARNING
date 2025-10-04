@@ -4,10 +4,15 @@ services:
     build: .
     ports:
       - "8080"
-    # The 'secrets' section tells Defang to inject these environment variables
-    # from its configured secrets store.
     secrets:
       - SECRET_KEY
       - DATABASE_URL
       - ADMIN_EMAIL
       - ADMIN_PASSWORD
+    # Explicitly configure the healthcheck to use the /health endpoint
+    deploy:
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
