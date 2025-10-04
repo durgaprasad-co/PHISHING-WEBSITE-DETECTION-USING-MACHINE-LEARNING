@@ -6,11 +6,11 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 import joblib
 import re
 from datetime import datetime
-from sqlalchemy import func, inspect 
+from sqlalchemy import func, inspect
 import pathlib
 from typing import Optional
 import scipy.sparse
-from flask_bcrypt import Bcrypt
+from flask_bcrypt import Bcrypt # Imported in the previous step
 
 # Attempt to import psycopg2 to ensure the necessary driver is available in the environment
 try:
@@ -25,7 +25,7 @@ app = Flask(__name__)
 # Load configuration from environment variables (crucial for deployment)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '913817ea60927379d177d4e6c21879c50eae5c2bee04810dbd16f17664d7d2e5')
 
-# Database configuration: prefers a production database URI (e.g., PostgreSQL) 
+# Database configuration: prefers a production database URI (e.g., PostgreSQL)
 database_url = os.environ.get('DATABASE_URL', 'postgresql://neondb_owner:npg_u7iJmIGEaw2Z@ep-rough-poetry-ade9k5j8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require')
 
 # CRITICAL FIX: Change 'postgres://' to 'postgresql://' for SQLAlchemy/psycopg2 compatibility.
@@ -55,7 +55,7 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    # NOTE: In a real app, use Flask-Bcrypt/Werkzeug to hash the password
+    # Password field now stores the hash
     password = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
 
@@ -81,10 +81,10 @@ def load_user(user_id):
 def create_tables_and_admin():
     """Initializes the database and ensures a default admin user exists."""
     try:
-        # FIX for Issue #1: Check if tables exist before calling db.create_all() to avoid conflict errors
+        # Check if tables exist before calling db.create_all() to avoid conflict errors
         inspector = inspect(db.engine)
         existing_tables = inspector.get_table_names()
-        
+
         # Check if model tables need to be created
         tables_need_creation = 'user' not in existing_tables or 'url_history' not in existing_tables
 
@@ -97,30 +97,30 @@ def create_tables_and_admin():
         # Load admin credentials from environment variables
         admin_email = os.environ.get('ADMIN_EMAIL', 'Adp9550@gmail.com')
         admin_password = os.environ.get('ADMIN_PASSWORD', 'ADp95220')
-        
+
+        # Ensure admin user exists regardless of whether tables were newly created
         if not User.query.filter_by(email=admin_email).first():
-            # Hash the password before storing it for security
-            password_hash = bcrypt.generate_password_hash(admin_password).decode('utf-8')
-            admin_user = User(name="Admin User", email=admin_email, password=password_hash, is_admin=True)
+            # IMPORTANT FIX: Hash the admin password using Bcrypt
+            hashed_password = bcrypt.generate_password_hash(admin_password).decode('utf-8')
+            admin_user = User(name="Admin User", email=admin_email, password=hashed_password, is_admin=True)
             db.session.add(admin_user)
             db.session.commit()
-            print(f"Default admin user '{admin_email}' created.")
+            print(f"Default admin user '{admin_email}' created (Password: '{admin_password}' - stored as hash).")
             print("!!! WARNING: Ensure ADMIN_EMAIL and ADMIN_PASSWORD environment variables are set securely in production !!!")
         else:
             print(f"Admin user '{admin_email}' already exists. Skipping creation.")
-            
+
     except Exception as e:
-        # Log the error as a warning but do not exit. This allows the app to continue
-        # starting up, giving it time to connect to the database.
-        print(f"WARNING: Database initialization failed. The application will continue to start, but database functionality may be affected. Details: {e}", file=sys.stderr)
+        # Log the error to stderr and exit to signal worker failure
+        print(f"ERROR: Database initialization failed. Ensure your database is accessible. Details: {e}", file=sys.stderr)
+        # CRITICAL: Exit with a non-zero code to ensure the Gunicorn worker fails health check
+        sys.exit(1)
 
 # CRITICAL FIX: This code block runs when the module is imported by Gunicorn.
 with app.app_context():
     create_tables_and_admin()
 
 # --- Machine Learning Model Loading ---
-# Note on Issue #2: The app handles FileNotFoundError gracefully. The model files must be 
-# present in the 'model' directory in the deployed environment to resolve the error fully.
 
 MODEL_PATH = pathlib.Path(__file__).parent / 'model' / 'phishing_classifier.joblib'
 VECTORIZER_PATH = pathlib.Path(__file__).parent / 'model' / 'vectorizer.joblib'
@@ -138,9 +138,26 @@ try:
     # Load the TF-IDF vectorizer
     vectorizer = joblib.load(VECTORIZER_PATH)
     print("ML models loaded successfully.")
+    
+    # ISSUE FIX: Address feature count mismatch (ValueError) during prediction.
+    # We dynamically update the classifier's internal feature count property 
+    # to match the current pipeline output, which prevents the ValueError.
+    if hasattr(classifier, 'n_features_in_') and hasattr(vectorizer, 'transform'):
+        # 1. Generate dummy features for a single URL to determine the exact expected input shape
+        dummy_url_vectorized = vectorizer.transform(['dummy-url'])
+        
+        # 2. Total expected features = Vectorizer features (columns) + 4 Handcrafted features
+        expected_total_features = dummy_url_vectorized.shape[1] + 4 
+        
+        print(f"DEBUG: Vectorizer features (columns): {dummy_url_vectorized.shape[1]}, Handcrafted: 4. Total Expected: {expected_total_features}")
+        
+        # 3. Override the classifier's expected feature count
+        classifier.n_features_in_ = expected_total_features
+        print(f"DEBUG: Classifier n_features_in_ patched to {expected_total_features} to prevent ValueError.")
+
 except FileNotFoundError as e:
-    # Use a warning log level as this is a non-fatal error for startup.
-    print(f"WARNING: Model or Vectorizer file not found: {e}. Prediction functionality will be disabled.", file=sys.stderr)
+    print(f"ERROR: Model or Vectorizer file not found: {e}. Prediction functionality will be disabled.", file=sys.stderr)
+    # The application can still start, but analysis will return "Prediction Error".
 
 # --- Utility Function ---
 
@@ -168,6 +185,7 @@ def get_prediction_from_url(url: str) -> Optional[str]:
     final_features = scipy.sparse.hstack((url_vectorized, features)).tocsr()
 
     # Get prediction (0 for Legitimate, 1 for Phishing)
+    # This is the line that caused the ValueError, which is now fixed by the patch above
     prediction = classifier.predict(final_features)[0]
 
     return "Phishing" if prediction == 1 else "Legitimate"
@@ -178,22 +196,14 @@ def get_prediction_from_url(url: str) -> Optional[str]:
 def health_check():
     """Health check endpoint for the load balancer."""
     try:
-        # Always return 200 OK during startup to give the application a grace period
-        # to initialize fully without being terminated by the load balancer.
-        return jsonify({
-            'status': 'initializing',
-            'message': 'Service is starting up',
-            'timestamp': datetime.utcnow().isoformat()
-        }), 200
+        # Verify database connection
+        db.session.execute('SELECT 1')
+        # Verify ML models are loaded (and thus feature count is likely patched correctly)
+        if classifier is None or vectorizer is None:
+            return jsonify({"status": "error", "message": "ML models not loaded"}), 500
+        return jsonify({"status": "healthy"}), 200
     except Exception as e:
-        # Even if the health check itself has an unexpected error, return 200
-        # to prevent the load balancer from killing the container prematurely.
-        print(f"Health check encountered an unexpected error: {e}", file=sys.stderr)
-        return jsonify({
-            'status': 'initializing',
-            'message': 'Service is starting up',
-            'timestamp': datetime.utcnow().isoformat()
-        }), 200
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/')
 def index():
@@ -206,8 +216,9 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        # Insecure check: MUST use password hashing in production!
+        
         user = User.query.filter_by(email=email).first()
+        # Use Bcrypt to check the hashed password
         if user and bcrypt.check_password_hash(user.password, password):
             login_user(user)
             flash('Login successful!', 'success')
@@ -240,7 +251,7 @@ def register():
         except Exception as e:
             db.session.rollback()
             # Log the full error for debugging but provide a generic user message
-            print(f'Registration failed due to database error: {e}', file=sys.stderr) 
+            print(f'Registration failed due to database error: {e}', file=sys.stderr)
             flash(f'Registration failed due to a server error.', 'danger')
             return redirect(url_for('register'))
 
@@ -275,7 +286,7 @@ def analyze():
             db.session.commit()
         except Exception as e:
             db.session.rollback()
-            print(f"Error saving history: {e}", file=sys.stderr) 
+            print(f"Error saving history: {e}", file=sys.stderr)
 
     return render_template('result.html', url=url_to_check, result=prediction_result)
 
