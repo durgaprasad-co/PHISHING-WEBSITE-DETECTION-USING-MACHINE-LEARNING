@@ -6,17 +6,15 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 import joblib
 import re
 from datetime import datetime
-# Updated to import 'inspect' for checking existing tables (Fix for Issue #1)
 from sqlalchemy import func, inspect 
 import pathlib
 from typing import Optional
-import scipy.sparse # Needed for feature combining in get_prediction_from_url
+import scipy.sparse
 
 # Attempt to import psycopg2 to ensure the necessary driver is available in the environment
 try:
     import psycopg2
 except ImportError:
-    # This is fine; Vercel will install it from requirements.txt, but locally it might be missing
     pass
 
 # --- Initialize Flask App and Configuration ---
@@ -24,11 +22,10 @@ except ImportError:
 app = Flask(__name__)
 
 # Load configuration from environment variables (crucial for deployment)
-# SECRET_KEY must be a long, random, and unique string.
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '913817ea60927379d177d4e6c21879c50eae5c2bee04810dbd16f17664d7d2e5')
 
 # Database configuration: prefers a production database URI (e.g., PostgreSQL) 
-database_url = os.environ.get('DATABASE_URL', 'postgresql://neondb_owner:npg_u7iJmIGEaw2Z@ep-rough-poetry-ade9k5j8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require') # Fallback for local testing only
+database_url = os.environ.get('DATABASE_URL', 'postgresql://neondb_owner:npg_u7iJmIGEaw2Z@ep-rough-poetry-ade9k5j8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require')
 
 # CRITICAL FIX: Change 'postgres://' to 'postgresql://' for SQLAlchemy/psycopg2 compatibility.
 if database_url.startswith("postgres://"):
@@ -127,6 +124,10 @@ VECTORIZER_PATH = pathlib.Path(__file__).parent / 'model' / 'vectorizer.joblib'
 
 classifier = None
 vectorizer = None
+
+# DIAGNOSTIC: Print the full path the app is searching for in the logs
+print(f"DEBUG: Attempting to load classifier from: {MODEL_PATH}")
+print(f"DEBUG: Attempting to load vectorizer from: {VECTORIZER_PATH}")
 
 try:
     # Load the trained classifier model
