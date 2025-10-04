@@ -175,6 +175,21 @@ def get_prediction_from_url(url: str) -> Optional[str]:
 
 # --- Routes ---
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint for the load balancer."""
+    try:
+        # 1. Verify database connection is alive
+        db.session.execute('SELECT 1')
+        # 2. Verify ML models are loaded and ready
+        if classifier is None or vectorizer is None:
+            # Return 503 to indicate the service is temporarily unavailable
+            return jsonify({'status': 'unhealthy', 'reason': 'ML models not loaded'}), 503
+        return jsonify({'status': 'healthy'}), 200
+    except Exception as e:
+        print(f"Health check failed: {e}", file=sys.stderr)
+        return jsonify({'status': 'unhealthy', 'reason': str(e)}), 503
+
 @app.route('/')
 def index():
     return render_template('index.html')
