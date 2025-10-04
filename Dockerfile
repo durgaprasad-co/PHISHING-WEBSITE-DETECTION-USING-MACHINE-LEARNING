@@ -1,11 +1,18 @@
 # Use a slim Python base image
 FROM python:3.10-slim
 
+# Install system dependencies required for packages like psycopg2 and scipy
+# Using --no-install-recommends keeps the image size down
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set the working directory
 WORKDIR /app
 
 # Install dependencies
-# NOTE: This assumes 'requirements.txt' is present in the project root.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
