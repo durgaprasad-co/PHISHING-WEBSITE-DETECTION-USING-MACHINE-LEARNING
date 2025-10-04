@@ -29,6 +29,9 @@ FROM python:3.10-slim
 # Create a non-root user and group for security
 RUN addgroup --system app && adduser --system --group app
 
+# Install curl for health checks in the final image
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy the virtual environment from the builder stage
