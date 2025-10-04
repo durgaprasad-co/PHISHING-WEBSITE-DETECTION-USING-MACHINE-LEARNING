@@ -9,12 +9,13 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create model directory (Optional, but good practice)
+# Create model directory
 RUN mkdir -p /app/model
 
-# Copy all project files: app.py, ML models (including the 'model' directory), 
-# and the 'templates' and 'static' folders. This is the crucial step 
-# that ensures the ML models are available at /app/model/
+# Copy model files first (if they exist)
+COPY model/*.joblib /app/model/
+
+# Copy all other project files
 COPY . /app/
 
 # Define the port the container will listen on
