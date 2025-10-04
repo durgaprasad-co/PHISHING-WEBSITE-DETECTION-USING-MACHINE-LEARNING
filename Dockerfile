@@ -34,14 +34,10 @@ WORKDIR /app
 # Copy the virtual environment from the builder stage
 COPY --from=builder /opt/venv /opt/venv
 
-# Copy the model files first. This will cause the build to fail early if the 'model' directory is missing.
-COPY model/ /app/model/
-
-# Copy the rest of the application source code
-COPY . /app/
-
-# Ensure the app user owns all files
-RUN chown -R app:app /app
+# Copy the application source code and set ownership to the non-root user.
+# This is more efficient than a separate `chown` layer and will copy the `model/`
+# directory if it exists in the build context.
+COPY --chown=app:app . /app/
 
 # Define the port the container will listen on
 ENV PORT 8080
