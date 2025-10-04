@@ -111,10 +111,9 @@ def create_tables_and_admin():
             print(f"Admin user '{admin_email}' already exists. Skipping creation.")
 
     except Exception as e:
-        # Log the error to stderr and exit to signal worker failure
-        print(f"ERROR: Database initialization failed. Ensure your database is accessible. Details: {e}", file=sys.stderr)
-        # CRITICAL: Exit with a non-zero code to ensure the Gunicorn worker fails health check
-        sys.exit(1)
+        # Log the error as a warning but do not exit. This allows the app to continue
+        # starting up, giving it time to connect to the database. The health check will report the DB status.
+        print(f"WARNING: Database initialization failed. The application will continue to start, but database functionality may be affected. Details: {e}", file=sys.stderr)
 
 # CRITICAL FIX: This code block runs when the module is imported by Gunicorn.
 with app.app_context():
