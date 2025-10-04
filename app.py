@@ -6,7 +6,8 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 import joblib
 import re
 from datetime import datetime
-from sqlalchemy import func
+# Updated to import 'inspect' for checking existing tables (Fix for Issue #1)
+from sqlalchemy import func, inspect 
 import pathlib
 from typing import Optional
 import scipy.sparse # Needed for feature combining in get_prediction_from_url
@@ -24,11 +25,9 @@ app = Flask(__name__)
 
 # Load configuration from environment variables (crucial for deployment)
 # SECRET_KEY must be a long, random, and unique string.
-# Updated default SECRET_KEY with the value you provided.
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '913817ea60927379d177d4e6c21879c50eae5c2bee04810dbd16f17664d7d2e5')
 
 # Database configuration: prefers a production database URI (e.g., PostgreSQL) 
-# --- UPDATED DATABASE URL HERE ---
 database_url = os.environ.get('DATABASE_URL', 'postgresql://neondb_owner:npg_u7iJmIGEaw2Z@ep-rough-poetry-ade9k5j8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require') # Fallback for local testing only
 
 # CRITICAL FIX: Change 'postgres://' to 'postgresql://' for SQLAlchemy/psycopg2 compatibility.
@@ -81,16 +80,24 @@ def load_user(user_id):
 def create_tables_and_admin():
     """Initializes the database and ensures a default admin user exists."""
     try:
-        # Create all tables defined by SQLAlchemy models
-        db.create_all()
-        print("Database tables created successfully.")
+        # FIX for Issue #1: Check if tables exist before calling db.create_all() to avoid conflict errors
+        inspector = inspect(db.engine)
+        existing_tables = inspector.get_table_names()
+        
+        # Check if model tables need to be created
+        tables_need_creation = 'user' not in existing_tables or 'url_history' not in existing_tables
+
+        if tables_need_creation:
+            db.create_all()
+            print("Database tables created successfully.")
+        else:
+            print("Tables already exist, skipping db.create_all().")
 
         # Load admin credentials from environment variables
         admin_email = os.environ.get('ADMIN_EMAIL', 'Adp9550@gmail.com')
-        # NOTE: Using a default password here is for demonstration only and insecure.
         admin_password = os.environ.get('ADMIN_PASSWORD', 'ADp95220')
         
-        # Check if the admin user already exists
+        # Ensure admin user exists regardless of whether tables were newly created
         if not User.query.filter_by(email=admin_email).first():
             # In production, the password MUST be hashed before storage.
             admin_user = User(name="Admin User", email=admin_email, password=admin_password, is_admin=True)
@@ -108,12 +115,12 @@ def create_tables_and_admin():
         sys.exit(1)
 
 # CRITICAL FIX: This code block runs when the module is imported by Gunicorn.
-# Wrapping it in app.app_context() ensures Flask and SQLAlchemy components are available, 
-# and running it here ensures the database is initialized before any requests are served.
 with app.app_context():
     create_tables_and_admin()
 
 # --- Machine Learning Model Loading ---
+# Note on Issue #2: The app handles FileNotFoundError gracefully. The model files must be 
+# present in the 'model' directory in the deployed environment to resolve the error fully.
 
 MODEL_PATH = pathlib.Path(__file__).parent / 'model' / 'phishing_classifier.joblib'
 VECTORIZER_PATH = pathlib.Path(__file__).parent / 'model' / 'vectorizer.joblib'
@@ -129,7 +136,7 @@ try:
     print("ML models loaded successfully.")
 except FileNotFoundError as e:
     print(f"ERROR: Model or Vectorizer file not found: {e}. Prediction functionality will be disabled.", file=sys.stderr)
-    # The application can still start, but analysis will return an error status.
+    # The application can still start, but analysis will return "Prediction Error".
 
 # --- Utility Function ---
 
