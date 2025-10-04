@@ -34,9 +34,10 @@ WORKDIR /app
 # Copy the virtual environment from the builder stage
 COPY --from=builder /opt/venv /opt/venv
 
-# Copy the application source code and model files
-# The `COPY . .` command will copy the `model` directory if it exists in the build context.
-# Ensure the model files are present in a `model/` directory in your project root.
+# Copy the model files first. This will cause the build to fail early if the 'model' directory is missing.
+COPY model/ /app/model/
+
+# Copy the rest of the application source code
 COPY . /app/
 
 # Ensure the app user owns all files

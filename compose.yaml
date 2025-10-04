@@ -8,8 +8,9 @@ services:
     ports:
       - "8080"
     # All required environment variables are defined here
+    # These values should be sourced from a secure location (e.g., a .env file or environment secrets)
     environment:
-      - SECRET_KEY=913817ea60927379d177d4e6c21879c50eae5c2bee04810dbd16f17664d7d2e5
-      - DATABASE_URL=postgresql://neondb_owner:npg_u7iJmIGEaw2Z@ep-rough-poetry-ade9k5j8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-      - ADMIN_EMAIL=Adp9550@gmail.com
-      - ADMIN_PASSWORD=ADp95220
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
