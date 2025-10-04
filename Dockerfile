@@ -35,8 +35,7 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 
 # Copy the application source code and set ownership to the non-root user.
-# This is more efficient than a separate `chown` layer and will copy the `model/`
-# directory if it exists in the build context.
+# This assumes the 'model' directory is present in the build context.
 COPY --chown=app:app . /app/
 
 # Define the port the container will listen on
@@ -46,5 +45,4 @@ ENV PORT 8080
 USER app
 
 # Command to run the application using Gunicorn
-# Use the Python from the virtual environment to run Gunicorn
 CMD ["/opt/venv/bin/gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "4", "app:app"]

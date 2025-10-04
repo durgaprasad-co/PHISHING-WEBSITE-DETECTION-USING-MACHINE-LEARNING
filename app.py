@@ -182,17 +182,25 @@ def health_check():
     try:
         # 1. Verify database connection is alive
         db.session.execute('SELECT 1')
+        # It's good practice to close the transaction, even for a SELECT.
+        db.session.commit()
+
         # 2. Check ML models status but do not fail the health check if they are missing.
         ml_status = 'ready' if classifier is not None and vectorizer is not None else 'unavailable'
         # Always return 200 OK if the database is connected.
         return jsonify({
             'status': 'healthy',
             'database': 'connected',
-            'ml_models': ml_status
+            'ml_models': ml_status,
+            'timestamp': datetime.utcnow().isoformat()
         }), 200
     except Exception as e:
         print(f"Health check failed: {e}", file=sys.stderr)
-        return jsonify({'status': 'unhealthy', 'reason': str(e)}), 503
+        return jsonify({
+            'status': 'unhealthy', 
+            'reason': str(e),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 503
 
 @app.route('/')
 def index():
