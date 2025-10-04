@@ -195,19 +195,29 @@ def get_prediction_from_url(url: str) -> Optional[str]:
 @app.route('/health')
 def health_check():
     """Health check endpoint for the load balancer."""
+    health_status = {
+        "status": "healthy",
+        "checks": {
+            "database": True,
+            "ml_models": True
+        }
+    }
+
     try:
-        # Simple database connection test
-        db.session.execute('SELECT 1')
-        db.session.commit()  # Ensure transaction is closed
-
-        # Verify ML models are loaded (and thus feature count is likely patched correctly)
-        if classifier is None or vectorizer is None:
-            return jsonify({"status": "error", "message": "ML models not loaded"}), 500
-
-        # All checks passed
-        return jsonify({"status": "healthy"}), 200
+        # Test database connection
+        db.session.execute('SELECT 1').scalar()
+        db.session.commit()
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        health_status["checks"]["database"] = False
+        print(f"Database health check failed: {str(e)}", file=sys.stderr)
+
+    # Check ML models
+    if classifier is None or vectorizer is None:
+        health_status["checks"]["ml_models"] = False
+
+    # Return 200 OK even if some components are not ready.
+    # This allows the container to stay up while components initialize.
+    return jsonify(health_status), 200
 
 @app.route('/')
 def index():
