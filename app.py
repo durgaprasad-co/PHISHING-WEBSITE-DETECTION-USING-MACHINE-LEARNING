@@ -140,8 +140,9 @@ try:
     vectorizer = joblib.load(VECTORIZER_PATH)
     print("ML models loaded successfully.")
 except FileNotFoundError as e:
-    print(f"ERROR: Model or Vectorizer file not found: {e}. Prediction functionality will be disabled.", file=sys.stderr)
-    # The application can still start, but analysis will return "Prediction Error".
+    # Use a warning log level as this is a non-fatal error for startup.
+    print(f"WARNING: Model or Vectorizer file not found: {e}. Prediction functionality will be disabled.", file=sys.stderr)
+    # The application will start, but analysis will return "Prediction Error".
 
 # --- Utility Function ---
 
@@ -181,8 +182,9 @@ def health_check():
     try:
         # 1. Verify database connection is alive
         db.session.execute('SELECT 1')
-        # 2. Check ML models status but don't fail health check if they're missing
+        # 2. Check ML models status but do not fail the health check if they are missing.
         ml_status = 'ready' if classifier is not None and vectorizer is not None else 'unavailable'
+        # Always return 200 OK if the database is connected.
         return jsonify({
             'status': 'healthy',
             'database': 'connected',
