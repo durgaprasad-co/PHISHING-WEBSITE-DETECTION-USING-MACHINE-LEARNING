@@ -10,6 +10,7 @@ from sqlalchemy import func, inspect
 import pathlib
 from typing import Optional
 import scipy.sparse
+from flask_bcrypt import Bcrypt
 
 # Attempt to import psycopg2 to ensure the necessary driver is available in the environment
 try:
@@ -35,6 +36,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+# Initialize Bcrypt for password hashing
+bcrypt = Bcrypt(app)
 
 # Initialize Login Manager
 login_manager = LoginManager()
@@ -184,7 +188,7 @@ def login():
         password = request.form.get('password')
         # Insecure check: MUST use password hashing in production!
         user = User.query.filter_by(email=email).first()
-        if user and user.password == password: 
+        if user and bcrypt.check_password_hash(user.password, password):
             login_user(user)
             flash('Login successful!', 'success')
             return redirect(url_for('index'))
@@ -205,8 +209,9 @@ def register():
             flash('An account with that email already exists.', 'warning')
             return redirect(url_for('register'))
 
-        # Insecure storage: MUST hash password in production!
-        new_user = User(name=name, email=email, password=password, is_admin=False)
+        # Hash the password before storing it
+        password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+        new_user = User(name=name, email=email, password=password_hash, is_admin=False)
         try:
             db.session.add(new_user)
             db.session.commit()
