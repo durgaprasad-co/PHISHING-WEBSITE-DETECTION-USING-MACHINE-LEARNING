@@ -2,5 +2,6 @@ Flask
 Flask-SQLAlchemy
 Flask-Login
 joblib
-psycopg2-binary  # Required for PostgreSQL database connection
+psycopg2-binary  # Required for PostgreSQL (Neon)
 gunicorn         # Production WSGI server
+Flask-Bcrypt     # For secure password hashing

@@ -4,15 +4,14 @@ FROM python:3.10-slim
 # Set the working directory
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies (gunicorn, Flask-Bcrypt, etc.)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all project files, including ML models and app code
+# Copy all project files: app.py, ML models, and templates/static folders
 COPY . /app/
 
 # Define the port the container will listen on
-# Defang typically requires the application to listen on port 8080
 ENV PORT 8080
 
 # Command to run the application using Gunicorn
