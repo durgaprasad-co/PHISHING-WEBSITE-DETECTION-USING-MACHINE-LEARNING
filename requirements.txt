@@ -6,4 +6,4 @@ psycopg2-binary
 gunicorn
 Flask-Bcrypt
 scipy
-scikit-learn
+scikit-learn==1.6.1
