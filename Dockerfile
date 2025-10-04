@@ -4,11 +4,17 @@ FROM python:3.10-slim
 # Set the working directory
 WORKDIR /app
 
-# Install dependencies (gunicorn, Flask-Bcrypt, etc.)
+# Install dependencies
+# NOTE: This assumes 'requirements.txt' is present in the project root.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all project files: app.py, ML models, and templates/static folders
+# Create model directory (Optional, but good practice)
+RUN mkdir -p /app/model
+
+# Copy all project files: app.py, ML models (including the 'model' directory), 
+# and the 'templates' and 'static' folders. This is the crucial step 
+# that ensures the ML models are available at /app/model/
 COPY . /app/
 
 # Define the port the container will listen on
