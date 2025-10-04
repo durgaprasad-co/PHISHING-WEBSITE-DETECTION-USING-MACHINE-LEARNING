@@ -2,5 +2,5 @@ Flask
 Flask-SQLAlchemy
 Flask-Login
 joblib
-scikit-learn
-psycopg2-binary
+psycopg2-binary  # Required for PostgreSQL database connection
+gunicorn         # Production WSGI server

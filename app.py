@@ -23,7 +23,7 @@ app = Flask(__name__)
 
 # Load configuration from environment variables (crucial for deployment)
 # SECRET_KEY must be a long, random, and unique string.
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'vcghvuegfjhvgfbvahgfbfhgrfgbgunh')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '913817ea60927379d177d4e6c21879c50eae5c2bee04810dbd16f17664d7d2e5')
 
 # Database configuration: prefers a production database URI (e.g., PostgreSQL) 
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///site.db') # Fallback for local testing only
