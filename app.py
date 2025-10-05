@@ -157,28 +157,30 @@ except FileNotFoundError as e:
 def get_prediction_from_url(url: str) -> Optional[str]:
     """Preprocesses a URL and returns a classification result ('Phishing' or 'Legitimate')."""
     if not classifier or not vectorizer:
-        print("Model or vectorizer is not loaded. Skipping prediction.", file=sys.stderr)
+        print("ERROR: Model or vectorizer is not loaded. Cannot perform prediction.", file=sys.stderr)
         return "Prediction Error"
 
-    # Simple feature extraction for the classifier
-    url_length = len(url)
-    has_at_symbol = 1 if '@' in url else 0
-    num_dots = url.count('.')
-    # Check for IP address in URL (simplified check)
-    has_ip = 1 if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", url) else 0
+    try:
+        # 1. Extract handcrafted features
+        url_length = len(url)
+        has_at_symbol = 1 if '@' in url else 0
+        num_dots = url.count('.')
+        has_ip = 1 if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", url) else 0
 
-    # Create a feature array (handcrafted features)
-    features = [[url_length, has_at_symbol, num_dots, has_ip]]
+        # 2. Transform the URL text using the loaded TF-IDF vectorizer
+        url_vectorized = vectorizer.transform([url])
 
-    # Transform the URL text using the loaded vectorizer
-    url_vectorized = vectorizer.transform([url])
+        # 3. Create a sparse matrix for the handcrafted features
+        handcrafted_features = scipy.sparse.csr_matrix([[url_length, has_at_symbol, num_dots, has_ip]])
 
-    # Combine handcrafted features with text features (assuming the model was trained this way)
-    # scipy.sparse is required for combining sparse matrices (from vectorizer) with dense arrays (features)
-    final_features = scipy.sparse.hstack((url_vectorized, features)).tocsr()
+        # 4. Combine vectorized text features and handcrafted features
+        final_features = scipy.sparse.hstack([url_vectorized, handcrafted_features])
 
-    # Get prediction (0 for Legitimate, 1 for Phishing)
-    prediction = classifier.predict(final_features)[0]
+        # 5. Get prediction (0 for Legitimate, 1 for Phishing)
+        prediction = classifier.predict(final_features)[0]
+    except Exception as e:
+        print(f"ERROR during prediction: {e}", file=sys.stderr)
+        return "Prediction Error"
 
     return "Phishing" if prediction == 1 else "Legitimate"
 
