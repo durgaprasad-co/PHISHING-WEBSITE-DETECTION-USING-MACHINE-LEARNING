@@ -6,11 +6,11 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 import joblib
 import re
 from datetime import datetime
-from sqlalchemy import func, inspect
+from sqlalchemy import func, inspect, text # ADDED: text for explicit SQL execution
 import pathlib
 from typing import Optional
 import scipy.sparse
-from flask_bcrypt import Bcrypt # Imported in the previous step
+from flask_bcrypt import Bcrypt
 
 # Attempt to import psycopg2 to ensure the necessary driver is available in the environment
 try:
@@ -111,9 +111,10 @@ def create_tables_and_admin():
             print(f"Admin user '{admin_email}' already exists. Skipping creation.")
 
     except Exception as e:
-        # Log the error as a warning but do not exit. This allows the app to continue
-        # starting up, giving it time to connect to the database. The health check will report the DB status.
-        print(f"WARNING: Database initialization failed. The application will continue to start, but database functionality may be affected. Details: {e}", file=sys.stderr)
+        # Log the error to stderr and exit to signal worker failure
+        print(f"ERROR: Database initialization failed. Ensure your database is accessible. Details: {e}", file=sys.stderr)
+        # CRITICAL: Exit with a non-zero code to ensure the Gunicorn worker fails health check
+        sys.exit(1)
 
 # CRITICAL FIX: This code block runs when the module is imported by Gunicorn.
 with app.app_context():
@@ -138,25 +139,18 @@ try:
     vectorizer = joblib.load(VECTORIZER_PATH)
     print("ML models loaded successfully.")
     
-    # ISSUE FIX: Address feature count mismatch (ValueError) during prediction.
-    # We dynamically update the classifier's internal feature count property 
-    # to match the current pipeline output, which prevents the ValueError.
+    # FIX: Address feature count mismatch (ValueError) during prediction.
     if hasattr(classifier, 'n_features_in_') and hasattr(vectorizer, 'transform'):
-        # 1. Generate dummy features for a single URL to determine the exact expected input shape
         dummy_url_vectorized = vectorizer.transform(['dummy-url'])
-        
-        # 2. Total expected features = Vectorizer features (columns) + 4 Handcrafted features
         expected_total_features = dummy_url_vectorized.shape[1] + 4 
         
         print(f"DEBUG: Vectorizer features (columns): {dummy_url_vectorized.shape[1]}, Handcrafted: 4. Total Expected: {expected_total_features}")
         
-        # 3. Override the classifier's expected feature count
         classifier.n_features_in_ = expected_total_features
         print(f"DEBUG: Classifier n_features_in_ patched to {expected_total_features} to prevent ValueError.")
 
 except FileNotFoundError as e:
     print(f"ERROR: Model or Vectorizer file not found: {e}. Prediction functionality will be disabled.", file=sys.stderr)
-    # The application can still start, but analysis will return "Prediction Error".
 
 # --- Utility Function ---
 
@@ -184,7 +178,6 @@ def get_prediction_from_url(url: str) -> Optional[str]:
     final_features = scipy.sparse.hstack((url_vectorized, features)).tocsr()
 
     # Get prediction (0 for Legitimate, 1 for Phishing)
-    # This is the line that caused the ValueError, which is now fixed by the patch above
     prediction = classifier.predict(final_features)[0]
 
     return "Phishing" if prediction == 1 else "Legitimate"
@@ -194,29 +187,17 @@ def get_prediction_from_url(url: str) -> Optional[str]:
 @app.route('/health')
 def health_check():
     """Health check endpoint for the load balancer."""
-    health_status = {
-        "status": "healthy",
-        "checks": {
-            "database": True,
-            "ml_models": True
-        }
-    }
-
     try:
-        # Test database connection
-        db.session.execute('SELECT 1').scalar()
-        db.session.commit()
+        # FIX: Use text() for raw SQL queries to comply with modern SQLAlchemy
+        db.session.execute(text('SELECT 1')) 
+        # Verify ML models are loaded
+        if classifier is None or vectorizer is None:
+            return jsonify({"status": "error", "message": "ML models not loaded"}), 500
+        return jsonify({"status": "healthy"}), 200
     except Exception as e:
-        health_status["checks"]["database"] = False
-        print(f"Database health check failed: {str(e)}", file=sys.stderr)
-
-    # Check ML models
-    if classifier is None or vectorizer is None:
-        health_status["checks"]["ml_models"] = False
-
-    # Return 200 OK even if some components are not ready.
-    # This allows the container to stay up while components initialize.
-    return jsonify(health_status), 200
+        # Log the error detail for debugging
+        print(f"Database health check failed: {e}", file=sys.stderr)
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/')
 def index():
