@@ -4,11 +4,11 @@ services:
     build: .
     ports:
       - "8080"
-    secrets:
-      - SECRET_KEY
-      - DATABASE_URL
-      - ADMIN_EMAIL
-      - ADMIN_PASSWORD
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     # Explicitly configure the healthcheck to use the /health endpoint
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/health || exit 1"]
